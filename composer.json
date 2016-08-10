@@ -1,0 +1,19 @@
+{
+    "name": "grachev/docker-hosts-updater",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Konstantin Grachev",
+            "email": "ko@grachev.io"
+        }
+    ],
+    "autoload": {
+        "psr-0": {
+            "": "src/"
+        }
+    },
+    "require": {
+        "symfony/console": "^3.1",
+        "symfony/process": "^3.1"
+    }
+}
