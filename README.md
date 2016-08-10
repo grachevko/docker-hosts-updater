@@ -8,7 +8,7 @@ Usage
 
 Start up `docker-hosts-updater`:
 
-    % docker run -d --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v /etc:/opt/etc grachev/docker-hosts-updater
+    % docker run -d --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v /etc/hosts:/opt/etc/hosts grachev/docker-hosts-updater
 
 Start containers with `hostname` option
 
