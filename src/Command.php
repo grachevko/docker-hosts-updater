@@ -92,7 +92,7 @@ final class Command extends BaseCommand
 
                 $this->writeFile($host, $ip);
             } else {
-                $this->io->error($event);
+                $this->io->error($this->formatLine($event));
             }
         }
     }
@@ -120,6 +120,7 @@ final class Command extends BaseCommand
 
         $result = [];
         $replaced = false;
+        $message = null;
         foreach ($lines as $line) {
             if (false === strpos($line, $host)) {
                 if ('' !== trim($line)) {
@@ -130,7 +131,7 @@ final class Command extends BaseCommand
             }
 
             if (!$ip) {
-                $this->io->success(sprintf('Removed: "%s"', $host));
+                $message = sprintf('Removed: "%s"', $host);
 
                 continue;
             }
@@ -140,15 +141,29 @@ final class Command extends BaseCommand
             $result[] = sprintf('%s %s', $ip, $hosts);
             $replaced = true;
 
-            $this->io->success(sprintf('Updated: "%s" %s -> %s', $host, $oldIp, $ip));
+            $message = sprintf('Updated: "%s" %s -> %s', $host, $oldIp, $ip);
         }
 
         if ($ip && !$replaced) {
             $result[] = sprintf('%s %s', $ip, $host);
 
-            $this->io->success(sprintf('Added: "%s - %s"', $host, $ip));
+            $message = sprintf('Added: "%s - %s"', $host, $ip);
         }
 
         file_put_contents($this->filePath, implode(PHP_EOL, $result).PHP_EOL);
+
+        if ($message) {
+            $this->io->success($this->formatLine($message));
+        }
+    }
+
+    /**
+     * @param string $string
+     *
+     * @return string
+     */
+    private function formatLine(string $string)
+    {
+        return sprintf('[%s] %s', date(DATE_ATOM), $string);
     }
 }
