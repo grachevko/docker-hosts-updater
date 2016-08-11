@@ -6,4 +6,4 @@ services:
         container_name: grachev_host_updater
         volumes:
             - /var/run/docker.sock:/var/run/docker.sock
-            - /etc/hosts:/opt/etc/hosts
+            - /var/hosts:/var/hosts
