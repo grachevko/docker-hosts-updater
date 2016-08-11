@@ -18,9 +18,9 @@ Restart dnsmasq
 
     % sudo service dnsmasq restart
     
-Start containers with `hostname` and `domainname` option
+Start containers with `hostname` option
 
-    % docker run -d --hostname nginx --domainname local nginx
+    % docker run -d --hostname nginx.local nginx
       
 Try to ping from host
 
