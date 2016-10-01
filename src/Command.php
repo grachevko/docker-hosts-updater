@@ -51,6 +51,11 @@ final class Command extends BaseCommand
     private $hostValidator;
 
     /**
+     * @var HostsDumper
+     */
+    private $dumper;
+
+    /**
      * {@inheritdoc}
      */
     protected function configure()
@@ -73,6 +78,7 @@ final class Command extends BaseCommand
         $this->collectionFactory = new HostCollectionFactory();
         $this->containerFactory = new ContainerFactory();
         $this->hostValidator = new HostValidator();
+        $this->dumper = new HostsDumper();
     }
 
     /**
@@ -84,7 +90,7 @@ final class Command extends BaseCommand
 
         $this->actualizeContainers($collection);
 
-        $this->dumpHosts($collection, $this->filePath);
+        $this->dumper->dump($collection, $this->filePath);
 
         foreach ($this->listen() as $event) {
             $this->handleEvent($collection, $event, true);
@@ -111,7 +117,7 @@ final class Command extends BaseCommand
         }
 
         if ($write) {
-            $this->dumpHosts($collection, $this->filePath);
+            $this->dumper->dump($collection, $this->filePath);
             $this->success(sprintf('%s %s %s', $event->getEvent(), $container->getHost(), $container->getIp()));
         }
     }
@@ -189,34 +195,6 @@ final class Command extends BaseCommand
                 $this->error($message);
             }
         }
-    }
-
-    /**
-     * @param HostCollection $collection
-     * @param string         $path
-     */
-    private function dumpHosts(HostCollection $collection, string $path)
-    {
-        $array = [];
-        foreach ($collection->getHosts() as $host) {
-            $ip = $host->getIp();
-            $domain = $host->getDomain();
-
-            if (!array_key_exists($ip, $array)) {
-                $array[$ip] = [];
-            }
-
-            if (!in_array($domain, $array[$ip], true)) {
-                $array[$ip][] = $domain;
-            }
-        }
-
-        $content = '';
-        foreach ($array as $ip => $domains) {
-            $content .= $ip.' '.implode('', $domains).PHP_EOL;
-        }
-
-        file_put_contents($path, $content);
     }
 
     /**
