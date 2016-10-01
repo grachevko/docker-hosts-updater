@@ -4,11 +4,11 @@
     "authors": [
         {
             "name": "Konstantin Grachev",
-            "email": "ko@grachev.io"
+            "email": "me@grachevko.ru"
         }
     ],
     "autoload": {
-        "psr-0": {
+        "psr-4": {
             "": "src/"
         }
     },

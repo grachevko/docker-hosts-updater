@@ -1,9 +1,0 @@
-version: '2'
-
-services:
-    app:
-        image: grachev/docker-hosts-updater
-        container_name: grachev_host_updater
-        volumes:
-            - /var/run/docker.sock:/var/run/docker.sock
-            - /var/hosts:/var/hosts

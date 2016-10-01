@@ -1,22 +1,14 @@
 docker-hosts-updater
 ----------
 
-Automatic create files with same format as `/etc/hosts` on start/stop containers which defined `hostname` option.
+Automatic update `/etc/hosts` on start/stop containers which defined `hostname` option and contain `.local` postfix.
 
 Usage
 -----
 
 Start up `docker-hosts-updater`:
 
-    % docker run -d --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v /var/hosts:/var/hosts grachev/docker-hosts-updater
-    
-For `dnsmasq` put line to `/etc/default/dnsmasq`
-
-    % DNSMASQ_OPTS="--hostsdir=/var/hosts"
-
-Restart dnsmasq
-
-    % sudo service dnsmasq restart
+    % docker run -d --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v /etc:/opt/etc grachev/docker-hosts-updater
     
 Start containers with `hostname` option
 

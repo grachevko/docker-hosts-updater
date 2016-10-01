@@ -2,6 +2,8 @@
 
 namespace Grachev\DockerHostsUpdater;
 
+use Grachev\DockerHostsUpdater\Model\Event;
+use Grachev\DockerHostsUpdater\Model\Host;
 use Symfony\Component\Console\Command\Command as BaseCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -10,7 +12,7 @@ use Symfony\Component\Process\Exception\ProcessFailedException;
 use Symfony\Component\Process\Process;
 
 /**
- * @author Konstantin Grachev <ko@grachev.io>
+ * @author Konstantin Grachev <me@grachevko.ru>
  */
 final class Command extends BaseCommand
 {
@@ -20,7 +22,7 @@ final class Command extends BaseCommand
 
     const FILTERS = [
         'type' => 'container',
-        'event' => ['start', 'stop'],
+        'event' => [DockerEvents::CONTAINER_START, DockerEvents::CONTAINER_STOP],
     ];
 
     /**
@@ -31,12 +33,22 @@ final class Command extends BaseCommand
     /**
      * @var string
      */
-    private $filePath = '/var/hosts';
+    private $filePath = '/opt/etc/hosts';
 
     /**
-     * @var array
+     * @var HostCollectionFactory
      */
-    private $containers = [];
+    private $collectionFactory;
+
+    /**
+     * @var ContainerFactory
+     */
+    private $containerFactory;
+
+    /**
+     * @var HostValidator
+     */
+    private $hostValidator;
 
     /**
      * {@inheritdoc}
@@ -53,11 +65,14 @@ final class Command extends BaseCommand
      */
     protected function initialize(InputInterface $input, OutputInterface $output)
     {
-        $this->io = new SymfonyStyle($input, $output);
-
-        if (!@mkdir($this->filePath) && !is_dir($this->filePath)) {
+        if (!file_exists($this->filePath) && !is_writable($this->filePath)) {
             throw new ProcessFailedException(sprintf('Can\'t create folder: "%s"', $this->filePath));
         }
+
+        $this->io = new SymfonyStyle($input, $output);
+        $this->collectionFactory = new HostCollectionFactory();
+        $this->containerFactory = new ContainerFactory();
+        $this->hostValidator = new HostValidator();
     }
 
     /**
@@ -65,12 +80,46 @@ final class Command extends BaseCommand
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $this->actualization();
+        $collection = $this->collectionFactory->fromFile($this->filePath);
 
-        $this->listen();
+        $this->actualizeContainers($collection);
+
+        $this->dumpHosts($collection, $this->filePath);
+
+        foreach ($this->listen() as $event) {
+            $this->handleEvent($collection, $event, true);
+        }
     }
 
-    private function actualization()
+    /**
+     * @param HostCollection $collection
+     * @param Event          $event
+     */
+    private function handleEvent(HostCollection $collection, Event $event, $write = false)
+    {
+        $container = $event->getContainer();
+        $host = new Host($container->getIp(), $container->getHost());
+
+        if (!$this->hostValidator->validate($host)) {
+            return;
+        }
+
+        if ($event->isStart()) {
+            $collection->addHost($host);
+        } else {
+            $collection->removeHost($host);
+        }
+
+        if ($write) {
+            $this->dumpHosts($collection, $this->filePath);
+            $this->success(sprintf('%s %s %s', $event->getEvent(), $container->getHost(), $container->getIp()));
+        }
+    }
+
+    /**
+     * @param HostCollection $collection
+     */
+    private function actualizeContainers(HostCollection $collection)
     {
         $process = new Process('docker ps -q');
         $process->mustRun();
@@ -78,16 +127,23 @@ final class Command extends BaseCommand
         $cids = explode(PHP_EOL, $process->getOutput());
 
         while ($cid = array_shift($cids)) {
-            $this->process($cid);
+            try {
+                $container = $this->containerFactory->fromCid($cid);
+                $this->handleEvent($collection, new Event($container, DockerEvents::CONTAINER_START));
+            } catch (\Exception $e) {
+            }
         }
     }
 
+    /**
+     * @return \Generator|Event[]
+     */
     private function listen()
     {
         $command = self::COMMAND;
         foreach (self::FILTERS as $key => $value) {
             if (is_array($value)) {
-                foreach ($value as $item) {
+                foreach ((array) $value as $item) {
                     $command .= sprintf(self::FILTER_FORMAT, $key, $item);
                 }
             } else {
@@ -99,121 +155,68 @@ final class Command extends BaseCommand
         $process->start();
 
         $stored = '';
-        foreach ($process as $type => $event) {
-            $this->debugMessage(sprintf('EVENT: "%s"', $event));
+        foreach ($process as $type => $message) {
+            $this->debugMessage(sprintf('EVENT: "%s"', $message));
 
             if ($process::OUT === $type) {
                 if ($stored) {
-                    $stored .= $event;
+                    $stored .= $message;
 
-                    if ($this->eventHasEnd($event)) {
-                        $event = $stored;
+                    if ($this->eventHasEnd($message)) {
+                        $message = $stored;
                         $stored = '';
 
                         $this->veryVerboseMessage(sprintf('Event received fully'));
                     } else {
                         continue;
                     }
-                } elseif (!$this->eventHasStart($event) || !$this->eventHasEnd($event)) {
-                    $stored .= $event;
-                    $this->veryVerboseMessage(sprintf('Catch only part of event: "%s"', $event));
+                } elseif (!$this->eventHasStart($message) || !$this->eventHasEnd($message)) {
+                    $stored .= $message;
+                    $this->veryVerboseMessage(sprintf('Catch only part of event: "%s"', $message));
 
                     continue;
                 }
 
-                $cid = explode(' ', $event, 5)[3];
-                $this->process($cid);
+                list($time, $subject, $event, $cid, $info) = explode(' ', $message, 5);
+
+                try {
+                    $container = $this->containerFactory->fromCid($cid);
+
+                    yield new Event($container, $event);
+                } catch (\Exception $e) {
+                }
             } else {
-                $this->error($event);
+                $this->error($message);
             }
         }
     }
 
     /**
-     * @param $cid
+     * @param HostCollection $collection
+     * @param string         $path
      */
-    private function process(string $cid)
+    private function dumpHosts(HostCollection $collection, string $path)
     {
-        $this->debugMessage('Process ' . $cid);
+        $array = [];
+        foreach ($collection->getHosts() as $host) {
+            $ip = $host->getIp();
+            $domain = $host->getDomain();
 
-        $config = $this->getConfig($cid);
-        $domainname = $config['Config']['Domainname'];
-        $hostname = $config['Config']['Hostname'];
-
-        if (!$domainname) {
-            if (false === strpos($hostname, '.')) {
-                $this->debugMessage(sprintf('Hostname for %s not defined', $config['Name']));
-
-                return;
+            if (!array_key_exists($ip, $array)) {
+                $array[$ip] = [];
             }
 
-            $host = $hostname;
-        } else {
-            $host = sprintf('%s.%s', $hostname, $domainname);
+            if (!in_array($domain, $array[$ip], true)) {
+                $array[$ip][] = $domain;
+            }
         }
 
-        $ip = array_shift($config['NetworkSettings']['Networks'])['IPAddress'];
-
-        $this->containers[$cid]['host'] = $host;
-
-        $this->writeFile($host, $ip);
-    }
-
-    /**
-     * @param string $cid
-     *
-     * @return array
-     */
-    private function getConfig(string $cid)
-    {
-        $process = new Process('docker inspect ' . $cid);
-        $process->mustRun();
-
-        return json_decode($process->getOutput(), true)[0];
-    }
-
-    /**
-     * @param string $host
-     * @param string $ip
-     */
-    private function writeFile(string $host, string $ip = '')
-    {
-        $path = $this->filePath . '/' . $host;
-        $isExists = file_exists($path);
-
-        $this->debugMessage(sprintf('writeFile: host "%s" ip "%s" exist "%s"', $host, $ip, $isExists));
-
-        if (!$ip) {
-            if (!$isExists) {
-                return;
-            }
-
-            if (unlink($path)) {
-                $this->success(sprintf('Removed: "%s"', $host));
-            } else {
-                $this->error(sprintf('Fail on remove - "%s"', $path));
-            }
-
-            return;
+        $content = '';
+        foreach ($array as $ip => $domains) {
+            $content .= $ip.' '.implode('', $domains).PHP_EOL;
         }
 
-        $line = sprintf('%s %s', $ip, $host);
-
-        if ($isExists) {
-            $oldIp = explode(' ', file_get_contents($path), 2)[0];
-            if ($oldIp === $ip) {
-                $this->success(sprintf('IP for "%s" not changed', $host));
-
-                return;
-            }
-
-            $message = sprintf('Updated: "%s" %s -> %s', $host, $oldIp, $ip);
-        } else {
-            $message = sprintf('Added: "%s - %s"', $host, $ip);
-        }
-
-        file_put_contents($path, $line);
-        $this->success($message);
+        file_put_contents($path, $content);
     }
 
     /**
@@ -247,7 +250,7 @@ final class Command extends BaseCommand
     }
 
     /**
-     * @param $message
+     * @param        $message
      * @param string $type
      */
     private function veryVerboseMessage(string $message, string $type = 'comment')
@@ -258,7 +261,7 @@ final class Command extends BaseCommand
     }
 
     /**
-     * @param $message
+     * @param        $message
      * @param string $type
      */
     private function debugMessage(string $message, string $type = 'note')
