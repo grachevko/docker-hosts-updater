@@ -1,7 +1,7 @@
 docker-hosts-updater
 ----------
 
-Automatic update `/etc/hosts` on start/stop containers which defined `hostname` option and contain `.local` postfix.
+Automatic update `/etc/hosts` on start/stop containers which defined `hostname` option and contain `.local` suffix.
 
 Usage
 -----
