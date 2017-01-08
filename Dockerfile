@@ -1,18 +1,15 @@
-FROM php:alpine
+FROM golang:alpine
 
-MAINTAINER Konstantin Grachev <ko@grachev.io>
+ENV GOPATH /go
+ENV GOBIN=$GOPATH/bin\
+    PATH=$PATH:$GOBIN
 
-ENV APP_DIR /usr/local/app
-ENV PATH ${APP_DIR}/bin:${PATH}
-ENV HOSTS_DIR /var/hosts
+COPY main.go main.go
 
-WORKDIR ${APP_DIR}
+RUN apk add --no-cache git gcc g++ make --virtual .build-deps \
+    && go get \
+    && go build main.go \
+    && cp main /usr/local/bin/grachev-dhu \
+    && apk del .build-deps
 
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
-
-RUN apk add --no-cache docker
-
-COPY ./ ${APP_DIR}/
-RUN composer install --optimize-autoloader --no-interaction
-
-ENTRYPOINT ["console", "--no-ansi"]
+ENTRYPOINT ["grachev-dhu"]
