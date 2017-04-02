@@ -85,7 +85,7 @@ func listen() {
 			if "start" == event.Action {
 				add(container)
 				updateFile()
-			} else if "stop" == event.Action || "kill" == event.Action {
+			} else if "stop" == event.Action || "kill" == event.Action || "destroy" == event.Action {
 				remove(container)
 				updateFile()
 			}
