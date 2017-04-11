@@ -86,8 +86,9 @@ func listen() {
 				add(container)
 				updateFile()
 			} else if "stop" == event.Action || "kill" == event.Action || "destroy" == event.Action {
-				remove(container)
-				updateFile()
+				if remove(container) {
+					updateFile()
+				}
 			}
 		case <-timeout:
 			continue
@@ -109,13 +110,21 @@ func add(container *docker.Container) {
 	ips[ip] = hosts
 }
 
-func remove(container *docker.Container) {
+func remove(container *docker.Container) (bool) {
 	ip, err := getIp(container)
 	if err != nil {
-		return
+		return false
 	}
 
-	delete(ips, ip)
+	for _, value := range ips {
+		if value == ip {
+			delete(ips, ip)
+
+			return true
+		}
+	}
+
+	return false
 }
 
 func getIp(container *docker.Container) (string, error) {
