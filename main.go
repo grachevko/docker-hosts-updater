@@ -10,28 +10,39 @@ import (
 	"os/exec"
 	"bufio"
 	"github.com/fsouza/go-dockerclient"
+	"flag"
+	"fmt"
 )
 
 const marker = "#### DOCKER HOSTS UPDATER ####"
 
 var (
-	path = "/opt/hosts"
+	path string
 	client *docker.Client
 	ips map[string]string
 	mutex sync.Mutex
 )
 
 func init() {
+	flag.StringVar(&path, "path", "/opt/hosts", "path to hosts")
+	flag.Parse()
+
 	dockerClient, err := docker.NewClient("unix:///var/run/docker.sock")
 	if err != nil {
 		panic(err)
 	}
-
 	client = dockerClient
-	ips = make(map[string]string)
 }
 
 func main() {
+	update()
+
+	listen()
+}
+
+func update() {
+	ips = make(map[string]string)
+
 	containers, err := client.ListContainers(docker.ListContainersOptions{})
 	if err != nil {
 		panic(err)
@@ -46,6 +57,7 @@ func main() {
 			continue
 		}
 
+		fmt.Println(container.Name)
 		add(container)
 		added = true
 	}
@@ -53,8 +65,6 @@ func main() {
 	if added {
 		updateFile()
 	}
-
-	listen()
 }
 
 func listen() {
@@ -80,15 +90,8 @@ func listen() {
 				continue
 			}
 
-			container, _ := client.InspectContainer(event.Actor.ID);
-
-			if "start" == event.Action {
-				add(container)
-				updateFile()
-			} else if "stop" == event.Action || "kill" == event.Action || "destroy" == event.Action {
-				if remove(container) {
-					updateFile()
-				}
+			if "start" == event.Action || "stop" == event.Action {
+				update()
 			}
 		case <-timeout:
 			continue
@@ -110,23 +113,6 @@ func add(container *docker.Container) {
 	ips[ip] = hosts
 }
 
-func remove(container *docker.Container) (bool) {
-	ip, err := getIp(container)
-	if err != nil {
-		return false
-	}
-
-	for _, value := range ips {
-		if value == ip {
-			delete(ips, ip)
-
-			return true
-		}
-	}
-
-	return false
-}
-
 func getIp(container *docker.Container) (string, error) {
 	ip := container.NetworkSettings.IPAddress;
 	if (0 < len(ip)) {
@@ -144,13 +130,12 @@ func getHosts(container *docker.Container) (string, error) {
 	var hosts string
 
 	domainname := container.Config.Domainname
-	if (0 == len(domainname)) {
-		return "", errors.New("Unsupported container")
-	}
-
-	hostname := container.Config.Hostname + "." + domainname
+	hostname := container.Config.Hostname
 
 	hosts = hostname
+	if 0 < len(domainname) {
+		hosts += "." + domainname
+	}
 
 	subdomains := container.Config.Labels["subdomains"]
 	if 0 < len(subdomains) {
