@@ -17,3 +17,12 @@ Start containers with `hostname` option
 Try to ping from host
 
     % ping nginx.local
+
+Subdomains
+-----
+Add label `subdomains` with one or more subdomains separated by space:
+
+    % docker run -d --hostname nginx.local --label subdomains="www api" nginx
+    % ping nginx.local
+    % ping www.nginx.local
+    % ping api.nginx.local
