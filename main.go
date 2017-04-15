@@ -139,8 +139,10 @@ func getHosts(container *docker.Container) (string, error) {
 
 	subdomains := container.Config.Labels["subdomains"]
 	if 0 < len(subdomains) {
+		basedomain := hosts
+
 		for _, host := range strings.Split(subdomains, " ") {
-			hosts += " " + host + "." + hostname
+			hosts += " " + host + "." + basedomain
 		}
 	}
 
