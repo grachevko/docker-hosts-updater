@@ -90,7 +90,7 @@ func listen() {
 				continue
 			}
 
-			if "start" == event.Action || "stop" == event.Action {
+			if "start" == event.Action || "stop" == event.Action || "die" == event.Action {
 				update()
 			}
 		case <-timeout:
