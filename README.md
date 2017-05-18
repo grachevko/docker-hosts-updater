@@ -4,7 +4,8 @@ docker-hosts-updater
 Automatic update `/etc/hosts` on start/stop containers which defined `hostname` option.
 
 Requirements
-____
+-----
+
 * **Native linux**  
 _This tool has no effect on macOS or windows, because docker on this OS running in 
 VM and you can't directly access from host to each container via ip._  
