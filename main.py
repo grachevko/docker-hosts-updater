@@ -34,8 +34,9 @@ def string_to_array(string):
         for item in replaces:
             element.append(random.choice(item))
 
-        if element not in result:
-            result.append(string.format(*element))
+        new_one = string.format(*element)
+        if new_one not in result:
+            result.append(new_one)
 
     return result
 
