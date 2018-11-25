@@ -1,0 +1,25 @@
+version: '3.7'
+
+services:
+    dhu:
+        build:
+          context: .
+        image: grachev/dhu
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+            - ./:/usr/local/app
+
+    nginx:
+        image: nginx:alpine
+        labels:
+            ru.grachevko.dhu: '{www,api}.nginx.local'
+
+    nginx2:
+        image: nginx:alpine
+        labels:
+            ru.grachevko.dhu: '{www,api}.nginx.local:2'
+
+    nginx3:
+        image: nginx:alpine
+        labels:
+            ru.grachevko.dhu: '{www,api}.nginx.local:3;api.nginx.local:5'

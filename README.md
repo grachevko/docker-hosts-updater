@@ -52,11 +52,11 @@ $ ping api.nginx.local
 Priority
 ----
 If you want to run two containers with same hosts and want that one will override another, 
-just add priority after comma:
+just add priority after colon:
 
 ```bash
 $ docker run -d --label ru.grachevko.dhu="nginx.local" nginx
-$ docker run -d --label ru.grachevko.dhu="nginx.local,10" nginx
+$ docker run -d --label ru.grachevko.dhu="nginx.local:10" nginx
 $ ping nginx.local
 ```
 Container with greater priority will be used, by default priority is 0
