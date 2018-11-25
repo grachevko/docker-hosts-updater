@@ -59,4 +59,5 @@ $ docker run -d --label ru.grachevko.dhu="nginx.local" nginx
 $ docker run -d --label ru.grachevko.dhu="nginx.local:10" nginx
 $ ping nginx.local
 ```
-Container with greater priority will be used, by default priority is 0
+Container with greater priority will be used, by default priority is 0. 
+If priority are the same then early created container will be used.
