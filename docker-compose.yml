@@ -12,14 +12,14 @@ services:
     nginx:
         image: nginx:alpine
         labels:
-            ru.grachevko.dhu: '{www,api}.nginx.local'
+            ru.grachevko.dhu: '{www,api,img,admin,profile}.nginx.local'
 
     nginx2:
         image: nginx:alpine
         labels:
-            ru.grachevko.dhu: '{www,api}.nginx.local:2'
+            ru.grachevko.dhu: '{www,admin,api}.nginx.local:2'
 
     nginx3:
         image: nginx:alpine
         labels:
-            ru.grachevko.dhu: '{www,api}.nginx.local:3;api.nginx.local:5'
+            ru.grachevko.dhu: 'img.nginx.local:3;api.nginx.local:5'

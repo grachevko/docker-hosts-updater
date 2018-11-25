@@ -3,8 +3,7 @@ import re
 
 LABEL = 'ru.grachevko.dhu'
 MARKER = '#### DOCKER HOSTS UPDATER ####'
-# HOSTS_PATH = '/opt/hosts'
-HOSTS_PATH = 'hosts'
+HOSTS_PATH = '/opt/hosts'
 
 
 def listen():
@@ -14,7 +13,7 @@ def listen():
 
 
 def scan():
-    containers = {}
+    containers = []
     for container in docker.containers.list():
         label = container.attrs.get('Config').get('Labels').get(LABEL)
         if label:
@@ -23,16 +22,16 @@ def scan():
                 for string in label.split(';'):
                     if ':' in string:
                         string, priority = string.split(':')
+                        priority = int(priority)
                     else:
                         priority = 0
-                    priority = int(priority)
 
-                    if ip not in containers.keys() or containers[ip].get('priority') < priority:
-                        containers[ip] = {
-                            'priority': priority,
-                            'hosts': string_to_array(string),
-                            'createdAt': container.attrs.get('Created')
-                        }
+                    containers.append({
+                        'ip': ip,
+                        'priority': priority,
+                        'hosts': string_to_array(string),
+                        'createdAt': container.attrs.get('Created')
+                    })
 
     return containers
 
@@ -92,19 +91,49 @@ def update(items):
 
     if items:
         lines.append(MARKER)
-        for ip, value in items:
-            lines.append('{} {}'.format(ip, ' '.join(value.get('hosts'))))
+        for ip, value in items.items():
+            line = '{} {}'.format(ip, ' '.join(value))
+            lines.append(line)
+            print(line)
         lines.append(MARKER)
+
+    summary = '\n'.join(lines)
 
     f.seek(0)
     f.truncate()
-    f.write('\n'.join(lines))
+    f.write(summary)
     f.close()
 
 
 def handle():
-    items = scan().items()
-    update(items)
+    print('Recompiling...')
+    items = scan()
+
+    map_dict = {}
+    for item in items:
+        for host in item.get('hosts'):
+            if host in map_dict:
+                priority_left = map_dict[host].get('priority')
+                priority_right = item.get('priority')
+
+                if priority_left > priority_right:
+                    continue
+
+                if priority_left == priority_right and map_dict[host].get('createdAt') < item.get('createdAt'):
+                    continue
+
+            map_dict[host] = item
+
+    summary = {}
+    for item in items:
+        ip = item.get('ip')
+        for host in item.get('hosts'):
+            if map_dict[host].get('ip') == ip:
+                if ip not in summary:
+                    summary[ip] = []
+                summary[ip].append(host)
+
+    update(summary)
 
 
 docker = docker.from_env()
