@@ -8,6 +8,11 @@ services:
         volumes:
             - /var/run/docker.sock:/var/run/docker.sock
             - ./:/usr/local/app
+            - /etc/hosts:/opt/hosts
+
+    lb:
+        image: nginx:alpine
+        container_name: lb
 
     nginx:
         image: nginx:alpine
@@ -23,3 +28,13 @@ services:
         image: nginx:alpine
         labels:
             ru.grachevko.dhu: 'img.nginx.local:3;api.nginx.local:5'
+
+    nginx4:
+        image: nginx:alpine
+        labels:
+            ru.grachevko.dhu: 'nginx4.local:0:lb'
+
+    nginx5:
+        image: nginx:alpine
+        labels:
+            ru.grachevko.dhu: 'nginx5.local:0:lb'

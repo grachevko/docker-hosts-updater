@@ -61,3 +61,16 @@ $ ping nginx.local
 ```
 Container with greater priority will be used, by default priority is 0. 
 If priority are the same then early created container will be used.
+
+Load Balancer
+----
+In order to pass traffic through loadbalancer you can define container name which ip will be used to record in hosts. 
+Just add one more colon and container name after.
+```bash
+$ docker run -d --name lb nginx
+$ docker run -d --label ru.grachevko.dhu="nginx1.local:0:lb" nginx
+$ docker run -d --label ru.grachevko.dhu="nginx2.local:0:lb" nginx
+$ ping nginx1.local // ip of lb
+$ ping nginx2.local // ip of lb
+```
+Keep in mind, loadbalancer container must have fixed name.

@@ -16,22 +16,30 @@ def scan():
     containers = []
     for container in docker.containers.list():
         label = container.attrs.get('Config').get('Labels').get(LABEL)
-        if label:
-            ip = next(iter(container.attrs.get('NetworkSettings').get('Networks').values())).get('IPAddress')
-            if ip:
-                for string in label.split(';'):
-                    if ':' in string:
-                        string, priority = string.split(':')
-                        priority = int(priority)
-                    else:
-                        priority = 0
+        if not label:
+            continue
 
-                    containers.append({
-                        'ip': ip,
-                        'priority': priority,
-                        'hosts': string_to_array(string),
-                        'createdAt': container.attrs.get('Created')
-                    })
+        for string in label.split(';'):
+            priority = 0
+            lb = container
+
+            if ':' in string:
+                parts = string.split(':')
+                string = parts[0]
+                priority = int(parts[1]) if len(parts) >= 2 else priority
+                lb = docker.containers.get(parts[2]) if len(parts) == 3 else lb
+
+            if not lb:
+                continue
+
+            ip = next(iter(lb.attrs.get('NetworkSettings').get('Networks').values())).get('IPAddress')
+            if ip:
+                containers.append({
+                    'ip': ip,
+                    'priority': priority,
+                    'hosts': string_to_array(string),
+                    'createdAt': container.attrs.get('Created'),
+                })
 
     return containers
 
