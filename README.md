@@ -5,7 +5,7 @@ Automatic update `/etc/hosts` on start/stop containers by labels.
 Requirements
 -----
 * **Native linux**  
-_This tool has no effect on macOS or windows, because docker on this OS running in 
+_This tool has no effect on macOS or windows, because docker on these OS running in 
 VM and you can't directly access from host to each container via ip._  
 
 Usage
@@ -30,7 +30,7 @@ Try to ping from host
 
 Multiple Hosts
 -----
-You can add multiple hosts, just separate it by semicolon:
+You can add multiple hosts, just separate them by semicolon:
 
 ```bash
 $ docker run --label ru.grachevko.dhu="nginx.local;nginx.ru" nginx
@@ -40,7 +40,7 @@ $ ping nginx.ru
 
 Subdomains
 -----
-Add subdomains by used pattern `{www,api}.nginx.local`:
+Add subdomains by using pattern `{www,api}.nginx.local`:
 
 ```bash
 $ docker run -d --label ru.grachevko.dhu="{www,api}.nginx.local" nginx
@@ -51,7 +51,7 @@ $ ping api.nginx.local
 
 Priority
 ----
-If you want to run two containers with same hosts and want that one will override another, 
+If you want to run two containers with same hosts and want one override another, 
 just add priority after colon:
 
 ```bash
@@ -59,13 +59,13 @@ $ docker run -d --label ru.grachevko.dhu="nginx.local" nginx
 $ docker run -d --label ru.grachevko.dhu="nginx.local:10" nginx
 $ ping nginx.local
 ```
-Container with greater priority will be used, by default priority is 0. 
-If priority are the same then early created container will be used.
+Container with greater priority will be used. Default priority 0. 
+If priority is the same then early created container will be used.
 
 Load Balancer
 ----
-In order to pass traffic through loadbalancer you can define container name which ip will be used to record in hosts. 
-Just add one more colon and container name after.
+To pass the traffic through the loadbalancer you should define container's name in order to use it's ip for recording in hosts. 
+Just add one more colon and container name after it.
 ```bash
 $ docker run -d --name lb nginx
 $ docker run -d --label ru.grachevko.dhu="nginx1.local:0:lb" nginx
