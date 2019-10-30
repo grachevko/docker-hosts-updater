@@ -1,5 +1,6 @@
 import docker
 import re
+from netaddr import valid_ipv4
 
 LABEL = 'ru.grachevko.dhu'
 MARKER = '#### DOCKER HOSTS UPDATER ####'
@@ -22,17 +23,24 @@ def scan():
         for string in label.split(';'):
             priority = 0
             lb = container
+            ip = False
 
             if ':' in string:
                 parts = string.split(':')
                 string = parts[0]
                 priority = int(parts[1]) if len(parts) >= 2 else priority
-                lb = docker.containers.get(parts[2]) if len(parts) == 3 else lb
 
-            if not lb:
-                continue
+                if len(parts) == 3:
+                    lbString = parts[2]
 
-            ip = next(iter(lb.attrs.get('NetworkSettings').get('Networks').values())).get('IPAddress')
+                    if valid_ipv4(lbString):
+                        ip = lbString
+                    else:
+                        lb = docker.containers.get(lbString)
+
+            if ip == False:
+                ip = next(iter(lb.attrs.get('NetworkSettings').get('Networks').values())).get('IPAddress')
+
             if ip:
                 containers.append({
                     'ip': ip,

@@ -5,8 +5,9 @@ Automatic update `/etc/hosts` on start/stop containers by labels.
 Requirements
 -----
 * **Native linux**  
-_This tool has no effect on macOS or windows, because docker on these OS running in 
-VM and you can't directly access from host to each container via ip._  
+_This tool has no effect on macOS or windows, because docker on these OS run in 
+VM and you can't directly access from host to each container via ip.
+Yet you can pass traffic through loadbalancer, see section above._  
 
 Usage
 -----
@@ -64,12 +65,12 @@ If priority is the same then early created container will be used.
 
 Load Balancer
 ----
-To pass the traffic through the loadbalancer you should define container's name in order to use it's ip for recording in hosts. 
+In order to pass the traffic through the loadbalancer you should define container's name or valid IPv4. 
 Just add one more colon and container name after it.
 ```bash
 $ docker run -d --name lb nginx
 $ docker run -d --label ru.grachevko.dhu="nginx1.local:0:lb" nginx
-$ docker run -d --label ru.grachevko.dhu="nginx2.local:0:lb" nginx
+$ docker run -d --label ru.grachevko.dhu="nginx2.local:0:127.0.0.1" nginx
 $ ping nginx1.local // ip of lb
 $ ping nginx2.local // ip of lb
 ```

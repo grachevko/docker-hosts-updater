@@ -38,3 +38,8 @@ services:
         image: nginx:alpine
         labels:
             ru.grachevko.dhu: 'nginx5.local:0:lb'
+
+    nginx6:
+        image: nginx:alpine
+        labels:
+            ru.grachevko.dhu: 'nginx6.local:0:127.0.0.1'
