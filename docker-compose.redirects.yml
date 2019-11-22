@@ -1,0 +1,31 @@
+version: '3.7'
+
+services:
+    redirect:
+        image: schmunk42/nginx-redirect:0.6.0
+        environment:
+            SERVER_REDIRECT: github.com
+            SERVER_REDIRECT_PATH: /grachevko/docker-hosts-updater
+            SERVER_REDIRECT_SCHEME: https
+        networks:
+            - ingress
+        deploy:
+            mode: replicated
+            replicas: 1
+            update_config:
+                parallelism: 1
+                order: start-first
+            restart_policy:
+                condition: on-failure
+            labels:
+                - "traefik.docker.network=proxy"
+                - "traefik.enable=true"
+                - "traefik.frontend.rule=Host:dhu.grachevko.ru"
+                - "traefik.port=80"
+                - "traefik.protocol=http"
+                - "traefik.backend.loadbalancer.method=wrr"
+
+networks:
+    ingress:
+        external: true
+        name: proxy

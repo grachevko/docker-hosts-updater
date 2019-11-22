@@ -1,0 +1,23 @@
+---
+kind: pipeline
+type: docker
+name: default
+
+clone:
+    depth: 1
+
+steps:
+    -   name: deploy
+        image: docker/compose:1.25
+        volumes:
+            -   name: docker.sock
+                path: /var/run/docker.sock
+        commands:
+            - docker-compose --file docker-compose.redirects.yml config | docker stack deploy --prune --with-registry-auth --compose-file - dhu
+        when:
+            branch: [ master ]
+
+volumes:
+    -   name: docker.sock
+        host:
+            path: /var/run/docker.sock
