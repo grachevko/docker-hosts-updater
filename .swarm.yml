@@ -8,7 +8,7 @@ services:
             SERVER_REDIRECT_PATH: /grachevko/docker-hosts-updater
             SERVER_REDIRECT_SCHEME: https
         networks:
-            - ingress
+            - traefik
         deploy:
             mode: replicated
             replicas: 1
@@ -18,14 +18,14 @@ services:
             restart_policy:
                 condition: on-failure
             labels:
-                - "traefik.docker.network=proxy"
-                - "traefik.enable=true"
-                - "traefik.frontend.rule=Host:dhu.grachevko.ru"
-                - "traefik.port=80"
-                - "traefik.protocol=http"
-                - "traefik.backend.loadbalancer.method=wrr"
+                - "traefik.http.routers.whoami.rule=Host(`dhu.grachevko.ru`)"
+                - "traefik.http.routers.whoami.entrypoints=websecure"
+                - "traefik.http.routers.whoami.tls=true"
+                - "traefik.http.routers.whoami.tls.certresolver=leresolver"
+                - "traefik.http.services.whoami-service.loadbalancer.server.port=80"
+                - "traefik.http.services.whoami-service.loadbalancer.server.scheme=http"
 
 networks:
-    ingress:
+    traefik:
         external: true
-        name: proxy
+        name: traefik

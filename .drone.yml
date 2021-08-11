@@ -8,12 +8,12 @@ clone:
 
 steps:
     -   name: deploy
-        image: docker:19.03.5
+        image: automagistre/docker:stable
         volumes:
             -   name: docker.sock
                 path: /var/run/docker.sock
         commands:
-            - docker stack deploy --prune --with-registry-auth --compose-file docker-compose.redirects.yml dhu
+            - docker stack deploy --prune --with-registry-auth --compose-file .swarm.yml dhu
         when:
             branch: [ master ]
 
