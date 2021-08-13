@@ -18,6 +18,7 @@ services:
             restart_policy:
                 condition: on-failure
             labels:
+                - "traefik.enable=true"
                 - "traefik.http.routers.whoami.rule=Host(`dhu.grachevko.ru`)"
                 - "traefik.http.routers.whoami.entrypoints=websecure"
                 - "traefik.http.routers.whoami.tls=true"
