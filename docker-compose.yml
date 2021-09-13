@@ -3,8 +3,11 @@ version: '3.7'
 services:
     dhu:
         build:
-          context: .
+            context: .
         image: grachev/dhu
+#        environment:
+#            CONTAINER_HOSTNAME_DISABLED: 'false'
+#            CONTAINER_NAME_DISABLED: 'false'
         volumes:
             - /var/run/docker.sock:/var/run/docker.sock
             - ./:/usr/local/app

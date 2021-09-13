@@ -29,6 +29,20 @@ Try to ping from host
 
     % ping nginx.local
 
+Default hosts
+-----
+By default adding records with container name and container hostname. 
+To disable it you can use environments `CONTAINER_HOSTNAME_DISABLED` and `CONTAINER_NAME_DISABLED`:    
+```bash
+$ docker run -d --restart=always \
+    --name docker-hosts-updater \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    -v /etc/hosts:/opt/hosts \
+    -e CONTAINER_HOSTNAME_DISABLED=false \
+    -e CONTAINER_NAME_DISABLED=false \
+    grachevko/docker-hosts-updater
+```
+
 Multiple Hosts
 -----
 You can add multiple hosts, just separate them by semicolon:
